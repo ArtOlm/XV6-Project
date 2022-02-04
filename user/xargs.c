@@ -52,7 +52,8 @@ int main(int argc,char* argv[]){
 	 char *ptr = line;
 	//read line by line to distinush args
 	while(read(0, &ch, 1) > 0)
-	{	if(ch == '\n'){//every new line an arg
+
+	{	if(ch == '\n'){//every new line we exec the arguments
 		   *ptr = ch;	
 				      
 		   if(fork() == 0){ //child execute the program with new arguments
@@ -73,17 +74,21 @@ int main(int argc,char* argv[]){
 			
 		   }		
 		    wait(0);//wait for the child to finish before continuing
-		    memset(line,0,sizeof(line));
+		    memset(line,0,sizeof(line));//clear line for the nexr read
 		    ptr = line;
 		}
-		else if(ch == ' '){
+		else if(ch == ' '){//if delimeter is space then add to rargs(new arguments)
 			*ptr = ch;
 			rargs[i] = substring(line);
 			i++;
 			memset(line,0,sizeof(line));
 			ptr = line;
 		}
-		else{
+		else if(i >= MAXARG){//at this point there are more aruments than allowed
+			printf("xargs: to many arguments");
+			exit(1);
+		}
+		else{//keep reading stdin
 		*ptr = ch;
 		ptr++;
 		}
