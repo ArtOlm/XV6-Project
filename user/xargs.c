@@ -45,7 +45,8 @@ int main(int argc,char* argv[]){
 	int i;
 	for(i = 1;i < argc - 1;i++){
 		rargs[i] = argv[i];
-	}	
+	}
+	int tempi = i;	
          char ch;
 	 //line holds argument by argument
 	 char line[512];
@@ -76,6 +77,8 @@ int main(int argc,char* argv[]){
 		    wait(0);//wait for the child to finish before continuing
 		    memset(line,0,sizeof(line));//clear line for the nexr read
 		    ptr = line;
+		    //ensure i index is at index after last arg in argv
+		    i = tempi;
 		}
 		else if(ch == ' '){//if delimeter is space then add to rargs(new arguments)
 			*ptr = ch;
