@@ -104,6 +104,7 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
+extern uint64 sys_strace(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -127,6 +128,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_strace]  sys_strace
 };
 
 void
@@ -134,10 +136,84 @@ syscall(void)
 {
   int num;
   struct proc *p = myproc();
+  
+  
+
 
   num = p->trapframe->a7;
-  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+  if(num > 0 && num < NELEM(syscalls) && syscalls[num]){
+    //save regiters a0-a5,(argument regiters)
+    //this way we can access after the system call
+    //i did not inlcude a3-a5 bcause no system call has more than three arguments
+    //this is raw value inly
+    int ta0 = argraw(0);
+    int ta1 = argraw(1);
+    int ta2 = argraw(2);
+    //two strings which get the arguments a0 and a1
+    char sa0[50];
+    char sa1[50];
+    argstr(0,sa0,50);
+    argstr(1,sa1,50);
+    //
+
+    
+	  
     p->trapframe->a0 = syscalls[num]();
+    //mask passed by the user
+     uint pmask = p->stracemask;
+     //mask generatd by num
+     uint nmask = 1 << (num);
+     
+     if(((pmask & nmask) == nmask)){//see if the process mask and num mask create num mask again, meaning it is a trace we want
+	//we call argrw(0) again since the convention in riscv is to put the return in register 10 or a0
+	//i did not use an array of names, instead I just did this if else statements to check the number and based on that it handles the name
+	//it also handles the argument, since arguments change based on the call I could not make is as dynamic as I wanted
+	if(num ==1){
+		printf("%d: syscall fork(void) -> %d\n",p->pid,argraw(0));}
+	else if(num == 2){
+		printf("%d: syscall exit(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 3){
+		printf("%d: syscall wait(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 4){
+		printf("%d: syscall pipe(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 5){
+		printf("%d: syscall read(%d,%d,%d) -> %d\n",p->pid,ta0,ta1,ta2,argraw(0));}
+	else if(num == 6){
+		printf("%d: syscall kill(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 7){
+		printf("%d: syscall exec(%s,%d) -> %d\n",p->pid,sa0,ta1,argraw(0));}
+	else if(num == 8){
+		printf("%d: syscall fstat(%d,%d) -> %d\n",p->pid,ta0,ta1,argraw(0));}
+	else if(num == 9){
+		printf("%d: syscall chdir(%s) -> %d\n",p->pid,sa0,argraw(0));}
+	else if(num == 10){
+		printf("%d: syscall dup(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 11){
+		printf("%d: syscall getpid(void) -> %d\n",p->pid,argraw(0));}
+	else if(num == 12){
+		printf("%d: syscall sbrk(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 13){
+		printf("%d: syscall sleep(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 14){
+		printf("%d: syscall uptime(void) -> %d\n",p->pid,argraw(0));}
+	else if(num == 15){
+		printf("%d: syscall open(%s,%d) -> %d\n",p->pid,sa0,ta1,argraw(0));}
+	else if(num == 16){
+		printf("%d: syscall write(%d,%d,%d) -> %d\n",p->pid,ta0,ta1,ta2,argraw(0));}
+	else if(num == 17){
+		printf("%d: syscall mknod(%s,%d,%d) -> %d\n",p->pid,sa0,ta1,ta2,argraw(0));}
+	else if(num == 18){
+		printf("%d: syscall link(%s,%s) -> %d\n",p->pid,sa0,sa1,argraw(0));}
+	else if(num == 19){
+		printf("%d: syscall unlink(%s) -> %d\n",p->pid,sa0,argraw(0));}
+	else if(num == 20){
+		printf("%d: syscall mkdir(%s) -> %d\n",p->pid,sa0,argraw(0));}
+	else if(num == 21){
+		printf("%d: syscall close(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 22){
+		printf("%d: syscall strace(%d) -> %d\n",p->pid,ta0,argraw(0));}
+     
+     }
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);

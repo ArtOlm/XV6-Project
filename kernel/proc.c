@@ -294,6 +294,8 @@ fork(void)
 
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
+  //copy maks to the child
+  np->stracemask = p->stracemask;
 
   // increment reference counts on open file descriptors.
   for(i = 0; i < NOFILE; i++)
