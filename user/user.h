@@ -24,6 +24,9 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int strace(int);
+void *mmap(void *addr, int length, int prot, int flags, int f, int offset);
+int munmap(void *addr,int length);
+
 
 // ulib.c
 int stat(const char*, struct stat*);

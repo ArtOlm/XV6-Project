@@ -40,13 +40,14 @@ usertrap(void)
 
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
-
   // send interrupts and exceptions to kerneltrap(),
   // since we're now in the kernel.
   w_stvec((uint64)kernelvec);
 
   struct proc *p = myproc();
   
+  
+ 	 
   // save user program counter.
   p->trapframe->epc = r_sepc();
   
@@ -65,7 +66,42 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if((which_dev = devintr()) != 0){
+  }else if(r_scause() == 15 || r_scause() == 13){
+	uint64 f_add  = (uint64)r_stval();
+	int outofbounds = 1;
+	//align adress to be a multiple of PGSIZE
+	uint64 aligned_add = PGROUNDDOWN(f_add);
+	for(int i = 0;i < MAX_MMR;i++){
+		if(p->mmr[i].valid){
+			//last address of the memory region
+			uint64 last_add = (uint64)(p->mmr[i].start_addr + p->mmr[i].length);
+			//check to see if the aligned address is within the memory region
+			if(((aligned_add) >= p->mmr[i].start_addr) && ((aligned_add) <= last_add)){
+				//physical page
+				uint64 *pg = kalloc();
+				//kalloc return 0 upon failure
+				if(*pg == 0){
+					printf("Error: allocation went wrong\n");
+					exit(-1);
+				}	
+				memset((void *)pg,0,PGSIZE);
+				for(int j = 0;j < MAX_PROC;j++){
+					if(p->mmr[i].sharedproc[j] > -1){
+						//go through all procs and update the page table
+			        		mappages(proc[p->mmr[i].sharedproc[j] - 1].pagetable,aligned_add,4096,(uint64)pg,p->mmr[i].prot | PTE_U);
+					}
+	 			 }	
+				outofbounds = 0;
+				break;
+			}
+		}
+	}
+	if(outofbounds){
+		printf("segmentation fault\n");
+		exit(-1);
+	}
+
+  }else if((which_dev = devintr()) != 0){
     // ok
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);

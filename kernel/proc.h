@@ -1,3 +1,5 @@
+#define MAX_MMR 20
+#define MAX_PROC 64
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -81,11 +83,25 @@ struct trapframe {
 };
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+//structure for the memory region
+struct mmregion {
+	uint64 start_addr;
+	int length;
+	int prot;
+	int flags;
+	int valid;
+	int file;
+	int fd;
+	struct shared *smr;
+	int sharedproc[MAX_PROC];
+	int sharedID;
+};
 
 // Per-process state
 struct proc {
+  
   struct spinlock lock;
-
+  	
   // p->lock must be held when using these:
   enum procstate state;        // Process state
   void *chan;                  // If non-zero, sleeping on chan
@@ -95,7 +111,6 @@ struct proc {
   uint stracemask;
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
-
   // these are private to the process, so p->lock need not be held.
   uint64 kstack;               // Virtual address of kernel stack
   uint64 sz;                   // Size of process memory (bytes)
@@ -105,4 +120,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  struct mmregion mmr[MAX_MMR];
+  uint64 cur_max;
+  int hasp;
+  int mmrsize;
+  
 };
+extern struct proc proc[MAX_PROC];

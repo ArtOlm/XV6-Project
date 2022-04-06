@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "flags.h"
 
 struct cpu cpus[NCPU];
 
@@ -46,8 +47,7 @@ proc_mapstacks(pagetable_t kpgtbl) {
 void
 procinit(void)
 {
-  struct proc *p;
-  
+  struct proc *p;  
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
@@ -275,7 +275,6 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
-
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
@@ -287,6 +286,48 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+  //copy the users memory regions
+  for(int i = 0;i < MAX_MMR;i++){
+	  if(p->mmr[i].valid && ((MAP_SHARED & p->mmr[i].flags) == MAP_SHARED)){
+	  
+	  	//copy the memory region	  
+	  	np->mmr[i].start_addr = p->mmr[i].start_addr;
+	  	np->mmr[i].length = p->mmr[i].length;
+	  	np->mmr[i].prot = p->mmr[i].prot;
+	  	np->mmr[i].flags = p->mmr[i].flags;
+	  	np->mmr[i].valid = 1;
+	  	np->mmr[i].file = 0;
+	  	np->mmr[i].fd = -1;
+	  	for(int j = 0;j < MAX_PROC;j++){
+			if(p->mmr[i].sharedproc[j] == -1){
+				p->mmr[i].sharedproc[j] = np->pid;
+				break;
+			}	
+          	}
+	  	p->mmr[i].sharedID++;
+	  	np->mmr[i].sharedID = p->mmr[i].sharedID;
+	  	//go through all pids sharing reg and update based on the pids
+		
+		  for(int j = 0;j < MAX_PROC;j++){
+			//go through all procs and set the shared processes to be the same
+			if(p->mmr[i].sharedproc[j] > -1){
+				for(int k = 0;k < MAX_PROC;k++){
+					proc[p->mmr[i].sharedproc[j] - 1].mmr[i].sharedproc[k] = p->mmr[i].sharedproc[k];
+				}	
+			}
+
+		  }
+	  	uint64 start = p->mmr[i].start_addr;
+	  	//map the child page table to be the same as the parent
+	  	while(start < (p->mmr[i].start_addr + p->mmr[i].length)){
+			  uint64 phys_add = walkaddr(p->pagetable,start);
+		  	if(phys_add > 0){
+				  mappages(np->pagetable,start,PGSIZE,phys_add,np->mmr[i].prot | PTE_U);
+		  	}
+		  start += PGSIZE;
+	  	}
+	  }
+ }
   np->sz = p->sz;
 
   // copy saved user registers.
@@ -342,6 +383,26 @@ void
 exit(int status)
 {
   struct proc *p = myproc();
+  //go through memory regions
+  for(int i = 0;i < MAX_MMR;i++){	
+  	if(p->mmr[i].valid){
+		//get the start address of the region
+		uint64 start = p->mmr[i].start_addr;
+		//go through the region page by page
+		while(start < (p->mmr[i].start_addr + p->mmr[i].length)){
+			//get the physical address, if it is not mapped then walkaddr returns 0
+			uint64 mapped_addr = walkaddr(p->pagetable,start);
+			if(mapped_addr > 0 && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED) && (p->mmr[i].sharedID > 1)){
+				//uvmunmap only unmaps mapped regions
+				uvmunmap(p->pagetable,start,1,0);
+			}else if(mapped_addr > 0){
+				uvmunmap(p->pagetable,start,1,1);
+			}
+			//go to the next page
+			start += PGSIZE;
+		}
+	}
+  }
 
   if(p == initproc)
     panic("init exiting");

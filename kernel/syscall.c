@@ -105,6 +105,8 @@ extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
 extern uint64 sys_strace(void);
+extern uint64 sys_mmap(void);
+extern uint64 sys_munmap(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -128,7 +130,9 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_strace]  sys_strace
+[SYS_strace]  sys_strace,
+[SYS_mmap]    sys_mmap,
+[SYS_munmap]    sys_munmap
 };
 
 void
@@ -212,6 +216,9 @@ syscall(void)
 		printf("%d: syscall close(%d) -> %d\n",p->pid,ta0,argraw(0));}
 	else if(num == 22){
 		printf("%d: syscall strace(%d) -> %d\n",p->pid,ta0,argraw(0));}
+	else if(num == 23){
+		printf("%d: syscall mmap() -> %d\n",p->pid,argraw(0));
+	}
      
      }
   } else {
