@@ -124,6 +124,7 @@ struct proc {
   uint64 cur_max;
   int hasp;
   int mmrsize;
+  int exit;
   
 };
 extern struct proc proc[MAX_PROC];

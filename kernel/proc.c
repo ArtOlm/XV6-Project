@@ -105,7 +105,6 @@ static struct proc*
 allocproc(void)
 {
   struct proc *p;
-
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
@@ -140,7 +139,7 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
-
+  p->cur_max = MAXVA - (2 * PGSIZE);
   return p;
 }
 
@@ -298,7 +297,8 @@ fork(void)
 	  	np->mmr[i].valid = 1;
 	  	np->mmr[i].file = 0;
 	  	np->mmr[i].fd = -1;
-	  	for(int j = 0;j < MAX_PROC;j++){
+	  	for(int j = 0;j < MAX_PROC;j++){	
+			//find a spot to keep the childs pid
 			if(p->mmr[i].sharedproc[j] == -1){
 				p->mmr[i].sharedproc[j] = np->pid;
 				break;
@@ -310,17 +310,33 @@ fork(void)
 		
 		  for(int j = 0;j < MAX_PROC;j++){
 			//go through all procs and set the shared processes to be the same
+			//ensure the id exists
 			if(p->mmr[i].sharedproc[j] > -1){
-				for(int k = 0;k < MAX_PROC;k++){
-					proc[p->mmr[i].sharedproc[j] - 1].mmr[i].sharedproc[k] = p->mmr[i].sharedproc[k];
-				}	
+				struct proc *mp;
+				for(mp = proc; mp < &proc[NPROC]; mp++){
+					//find the proc structure based on the id
+					if(mp->pid == p->mmr[i].sharedproc[j]){
+						for(int k = 0;k < MAX_PROC;k++){
+							mp->mmr[i].sharedproc[k] = p->mmr[i].sharedproc[k];
+						}
+						
+					}
+				}
+				
+						
 			}
 
 		  }
 	  	uint64 start = p->mmr[i].start_addr;
 	  	//map the child page table to be the same as the parent
 	  	while(start < (p->mmr[i].start_addr + p->mmr[i].length)){
-			  uint64 phys_add = walkaddr(p->pagetable,start);
+			uint64 phys_add = walkaddr(p->pagetable,start);
+			uint64 child_phys_add = walkaddr(np->pagetable,start);
+			//see if the child has something mapped to physical page
+			if(child_phys_add > 0){
+				uvmunmap(np->pagetable, child_phys_add,1,1);
+			} 
+			//map any physical pages
 		  	if(phys_add > 0){
 				  mappages(np->pagetable,start,PGSIZE,phys_add,np->mmr[i].prot | PTE_U);
 		  	}
@@ -385,25 +401,36 @@ exit(int status)
   struct proc *p = myproc();
   //go through memory regions
   for(int i = 0;i < MAX_MMR;i++){	
-  	if(p->mmr[i].valid){
+  	if(p->mmr[i].valid && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED)){
+		 p->mmr[i].valid = 0;
+		  int count = 0;
+		 for(int k = 0;k < MAX_PROC;k++){
+			if(p->mmr[i].sharedproc[k] != -1){
+				//printf("id%d\n",p->mmr[i].sharedproc[k]);
+		       		if(!proc[p->mmr[i].sharedproc[k] - 1].exit){
+					count++;
+				}
+			}
+			p->mmr[i].sharedproc[k] = -1;
+		  }
 		//get the start address of the region
 		uint64 start = p->mmr[i].start_addr;
 		//go through the region page by page
 		while(start < (p->mmr[i].start_addr + p->mmr[i].length)){
 			//get the physical address, if it is not mapped then walkaddr returns 0
 			uint64 mapped_addr = walkaddr(p->pagetable,start);
-			if(mapped_addr > 0 && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED) && (p->mmr[i].sharedID > 1)){
+			if(mapped_addr > 0 && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED) && (count == 1)){
 				//uvmunmap only unmaps mapped regions
-				uvmunmap(p->pagetable,start,1,0);
-			}else if(mapped_addr > 0){
 				uvmunmap(p->pagetable,start,1,1);
+			}else if(mapped_addr > 0){
+				uvmunmap(p->pagetable,start,1,0);
 			}
 			//go to the next page
 			start += PGSIZE;
 		}
 	}
   }
-
+   p->exit = 1;
   if(p == initproc)
     panic("init exiting");
 

@@ -88,7 +88,12 @@ usertrap(void)
 				for(int j = 0;j < MAX_PROC;j++){
 					if(p->mmr[i].sharedproc[j] > -1){
 						//go through all procs and update the page table
-			        		mappages(proc[p->mmr[i].sharedproc[j] - 1].pagetable,aligned_add,4096,(uint64)pg,p->mmr[i].prot | PTE_U);
+						struct proc *mp;
+						for(mp = proc; mp < &proc[NPROC]; mp++){
+							if(mp->pid == p->mmr[i].sharedproc[j]){
+								mappages(mp->pagetable,aligned_add,4096,(uint64)pg,p->mmr[i].prot | PTE_U);
+							}
+						}
 					}
 	 			 }	
 				outofbounds = 0;
