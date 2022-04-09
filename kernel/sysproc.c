@@ -198,7 +198,7 @@ sys_munmap(void){
           struct proc *mp;
 		      for(mp = proc; mp < &proc[NPROC]; mp++){
               if(mp->pid == p->mmr[i].sharedproc[k]){
-                for(int q = 1;q < MAX_PROC;q++){
+                for(int q = 0;q < MAX_PROC;q++){
                     if(p->pid == mp->mmr[i].sharedproc[q]){
                         mp->mmr[i].sharedproc[q] = -1;
                     }
