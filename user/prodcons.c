@@ -1,7 +1,7 @@
 #include "kernel/types.h"
 #include "user/user.h"
 #include "kernel/flags.h"
-
+//this is the original test tht can run in xv6
 #define BUF_SIZE 10
 void producer();
 int consumer();
@@ -30,35 +30,9 @@ int main() {
         printf("Error: mmap() failed\n");
         exit(-1);
     }
-    //producer();
-	//printf("I am here\n");
     int rc = fork();
     if (rc == 0) {
-	int rv = fork();
-    	if (rv == 0) {
-		int rt = fork();
-    		if (rt == 0) {
-			producer();
-			//printf("main consumed sum = %d\n",consumer()); 
-        		exit(0);
-    		}
-    		else if (rt>0) {
-        		wait(0);
-        		//printf("main consumed sum = %d\n",consumer());
-    		} else {
-        		printf("Error: fork() failed\n");
-        		exit(-1);
-    		}
-        	exit(0);
-    	}
-    	else if (rv>0) {
-        	wait(0);
-        	//printf("main consumed sum = %d\n",consumer());
-    	} else {
-        	printf("Error: fork() failed\n");
-        	exit(-1);
-    	}
-        exit(0);
+	     producer();
     }
     else if (rc>0) {
         wait(0);
@@ -67,8 +41,6 @@ int main() {
         printf("Error: fork() failed\n");
         exit(-1);
     }
-    //munmap(buffer,BUF_SIZE * sizeof(int));
-    //printf("Num:",buffer[0]);
     exit(0);
 }
     

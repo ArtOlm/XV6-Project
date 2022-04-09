@@ -92,9 +92,7 @@ struct mmregion {
 	int valid;
 	int file;
 	int fd;
-	struct shared *smr;
 	int sharedproc[MAX_PROC];
-	int sharedID;
 };
 
 // Per-process state
@@ -122,9 +120,6 @@ struct proc {
   char name[16];               // Process name (debugging)
   struct mmregion mmr[MAX_MMR];
   uint64 cur_max;
-  int hasp;
   int mmrsize;
-  int exit;
-  
 };
 extern struct proc proc[MAX_PROC];

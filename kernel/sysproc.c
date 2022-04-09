@@ -172,6 +172,7 @@ sys_munmap(void){
 	//int tl;
 	uint64 address;
 	argaddr(0,&address);
+	uint64 start = address;
 	//uint64 length;
 	//argint(1,&tl);
 	//length = (uint64)tl;
@@ -183,22 +184,44 @@ sys_munmap(void){
 			//last address
 			uint64 last_address = p->mmr[i].start_addr + p->mmr[i].length;
 			//check if the address passed equals to any of the regions
-			if(p->mmr[i].start_addr <= address){
-                                removed = 1;
-				while(address < last_address){
-                        		//get the physical address, if it is not mapped then walkaddr returns 0
-                        		uint64 mapped_addr = walkaddr(p->pagetable,address);
-                        		if((mapped_addr > 0) && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED) && p->hasp){
-                                		//uvmunmap only unmaps mapped regions
-                                		uvmunmap(p->pagetable,address,1,0);
-                        		}
-                        		else if(mapped_addr > 0){
-                                		uvmunmap(p->pagetable,address,1,1);
-                        			}
-                        		//go to the next page
-                        		address+= PGSIZE;
-                		}
-			}	
+			if(p->mmr[i].start_addr == address){
+				//count how many processes in the region
+				int count = 0;
+      	for(int j = 0;j < MAX_PROC;j++){
+          if(p->mmr[i].sharedproc[j] != -1){
+            count++;
+          }
+      	}
+      //remove this p->pid from every other processes shared region
+			for(int k = 0;k < MAX_PROC;k++){
+				if(p->mmr[i].sharedproc[k] != -1){
+          struct proc *mp;
+		      for(mp = proc; mp < &proc[NPROC]; mp++){
+              if(mp->pid == p->mmr[i].sharedproc[k]){
+                for(int q = 1;q < MAX_PROC;q++){
+                    if(p->pid == mp->mmr[i].sharedproc[q]){
+                        mp->mmr[i].sharedproc[q] = -1;
+                    }
+                }
+              }
+            }
+				}
+			}
+        removed = 1;
+				while(start < last_address){
+					//get the physical address, if it is not mapped then walkaddr returns 0
+					uint64 mapped_addr = walkaddr(p->pagetable,start);
+      		//only remove physical when the count is 1
+					if(mapped_addr > 0 && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED) && (count == 1)){
+						//uvmunmap only unmaps mapped regions
+						uvmunmap(p->pagetable,start,1,1);
+					}else if(mapped_addr > 0){
+						uvmunmap(p->pagetable,start,1,0);
+					}
+					//go to the next page
+					start += PGSIZE;
+				}			
+	  	}	
 		}
 	}
 	if(!removed){

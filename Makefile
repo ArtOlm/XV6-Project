@@ -140,6 +140,8 @@ UPROGS=\
 	$U/_zombie\
 	$U/_strace\
 	$U/_prodcons\
+	$U/_prodconsmultfork\
+	$U/_prodconssegfault\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

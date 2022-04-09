@@ -304,8 +304,6 @@ fork(void)
 				break;
 			}	
           	}
-	  	p->mmr[i].sharedID++;
-	  	np->mmr[i].sharedID = p->mmr[i].sharedID;
 	  	//go through all pids sharing reg and update based on the pids
 		
 		  for(int j = 0;j < MAX_PROC;j++){
@@ -319,11 +317,8 @@ fork(void)
 						for(int k = 0;k < MAX_PROC;k++){
 							mp->mmr[i].sharedproc[k] = p->mmr[i].sharedproc[k];
 						}
-						
 					}
-				}
-				
-						
+				}		
 			}
 
 		  }
@@ -336,7 +331,7 @@ fork(void)
 			if(child_phys_add > 0){
 				uvmunmap(np->pagetable, child_phys_add,1,1);
 			} 
-			//map any physical pages
+			//map any physical pages to the child
 		  	if(phys_add > 0){
 				  mappages(np->pagetable,start,PGSIZE,phys_add,np->mmr[i].prot | PTE_U);
 		  	}
@@ -403,22 +398,35 @@ exit(int status)
   for(int i = 0;i < MAX_MMR;i++){	
   	if(p->mmr[i].valid && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED)){
 		 p->mmr[i].valid = 0;
+      //count how manyh processes where sharing the region
 		  int count = 0;
-		 for(int k = 0;k < MAX_PROC;k++){
+      for(int j = 0;j < MAX_PROC;j++){
+          if(p->mmr[i].sharedproc[j] != -1){
+            count++;
+          }
+      }
+      //remove this p->pid from every other processes shared region
+		for(int k = 0;k < MAX_PROC;k++){
 			if(p->mmr[i].sharedproc[k] != -1){
-				//printf("id%d\n",p->mmr[i].sharedproc[k]);
-		       		if(!proc[p->mmr[i].sharedproc[k] - 1].exit){
-					count++;
-				}
+          struct proc *mp;
+		      for(mp = proc; mp < &proc[NPROC]; mp++){
+              if(mp->pid == p->mmr[i].sharedproc[k]){
+                for(int q = 1;q < MAX_PROC;q++){
+                    if(p->pid == mp->mmr[i].sharedproc[q]){
+                        mp->mmr[i].sharedproc[q] = -1;
+                    }
+                }
+              }
+            }
 			}
-			p->mmr[i].sharedproc[k] = -1;
-		  }
+		}
 		//get the start address of the region
 		uint64 start = p->mmr[i].start_addr;
 		//go through the region page by page
 		while(start < (p->mmr[i].start_addr + p->mmr[i].length)){
 			//get the physical address, if it is not mapped then walkaddr returns 0
 			uint64 mapped_addr = walkaddr(p->pagetable,start);
+      //only remove physical when the count is 1
 			if(mapped_addr > 0 && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED) && (count == 1)){
 				//uvmunmap only unmaps mapped regions
 				uvmunmap(p->pagetable,start,1,1);
@@ -430,7 +438,6 @@ exit(int status)
 		}
 	}
   }
-   p->exit = 1;
   if(p == initproc)
     panic("init exiting");
 
