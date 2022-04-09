@@ -38,13 +38,12 @@ int main() {
     	if (rv == 0) {
 		int rt = fork();
     		if (rt == 0) {
-			producer();
-			//printf("main consumed sum = %d\n",consumer()); 
+			     producer();
         		exit(0);
     		}
     		else if (rt>0) {
         		wait(0);
-        		//printf("main consumed sum = %d\n",consumer());
+        		printf("main consumed sum = %d\n",consumer());
     		} else {
         		printf("Error: fork() failed\n");
         		exit(-1);
@@ -53,7 +52,7 @@ int main() {
     	}
     	else if (rv>0) {
         	wait(0);
-        	//printf("main consumed sum = %d\n",consumer());
+        	printf("main consumed sum = %d\n",consumer());
     	} else {
         	printf("Error: fork() failed\n");
         	exit(-1);

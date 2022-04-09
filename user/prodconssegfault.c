@@ -67,6 +67,7 @@ int main() {
         printf("Error: fork() failed\n");
         exit(-1);
     }
+    //causes segmentation fault since region was unmapped
     munmap(buffer,BUF_SIZE * sizeof(int));
     printf("main consumed sum = %d\n",consumer());
     exit(0);
