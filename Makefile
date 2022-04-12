@@ -143,6 +143,7 @@ UPROGS=\
 	$U/_prodconsmultfork\
 	$U/_prodconssegfault\
 	$U/_prodconssingle\
+	$U/_prodconscopy\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
