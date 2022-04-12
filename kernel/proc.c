@@ -427,7 +427,7 @@ exit(int status)
 			//get the physical address, if it is not mapped then walkaddr returns 0
 			uint64 mapped_addr = walkaddr(p->pagetable,start);
       //only remove physical when the count is 1
-			if(mapped_addr > 0 && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED) && (count == 1)){
+			if((mapped_addr > 0) && (count == 1)){
 				//uvmunmap only unmaps mapped regions
 				uvmunmap(p->pagetable,start,1,1);
 			}else if(mapped_addr > 0){
