@@ -31,7 +31,7 @@ int main() {
         exit(-1);
     }
     producer();
-    printf("Total consumed = %d\n",consumer());
+    printf("main consumed sum = %d\n",consumer());
     exit(0);
 }
     
