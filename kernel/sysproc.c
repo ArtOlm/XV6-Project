@@ -180,11 +180,11 @@ sys_munmap(void){
 	for(int i = 0;i < MAX_MMR;i++){
 		//find valid region
 		if(p->mmr[i].valid){
-			p->mmr[i].valid = 0;
 			//last address
 			uint64 last_address = p->mmr[i].start_addr + p->mmr[i].length;
 			//check if the address passed equals to any of the regions
 			if(p->mmr[i].start_addr == address){
+				p->mmr[i].valid = 0;
 				//count how many processes in the region
 				int count = 0;
       	for(int j = 0;j < MAX_PROC;j++){
