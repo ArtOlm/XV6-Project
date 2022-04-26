@@ -34,7 +34,8 @@ OBJS = \
   $K/sysfile.o \
   $K/kernelvec.o \
   $K/plic.o \
-  $K/virtio_disk.o
+  $K/virtio_disk.o\
+  $K/semaphore.o
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -144,6 +145,14 @@ UPROGS=\
 	$U/_prodconssegfault\
 	$U/_prodconssingle\
 	$U/_prodconscopy\
+	$U/_prodcons_sem\
+	$U/_prodcons_no_share\
+	$U/_prodcons_test1\
+	$U/_prodcons_test2\
+	$U/_prodcons_test3\
+	$U/_prodcons_test4\
+	$U/_prodcons_test5\
+
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

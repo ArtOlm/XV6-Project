@@ -11,8 +11,12 @@ struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
 
+struct semaphore sem[20];
+
 struct proc *initproc;
 
+struct spinlock tblock;
+char* abc[] = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t"};
 int nextpid = 1;
 struct spinlock pid_lock;
 
@@ -103,7 +107,7 @@ allocpid() {
 // If there are no free procs, or a memory allocation fails, return 0.
 static struct proc*
 allocproc(void)
-{
+{ 
   struct proc *p;
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
@@ -225,7 +229,7 @@ void
 userinit(void)
 {
   struct proc *p;
-
+ initlock(&tblock,"sem_table");
   p = allocproc();
   initproc = p;
   
@@ -285,6 +289,7 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+  acquire(&wait_lock);
   //copy the users memory regions
   for(int i = 0;i < MAX_MMR;i++){
 	  if(p->mmr[i].valid && ((MAP_SHARED & p->mmr[i].flags) == MAP_SHARED)){
@@ -339,6 +344,7 @@ fork(void)
 	  	}
 	  }
  }
+ release(&wait_lock);
   np->sz = p->sz;
 
   // copy saved user registers.
@@ -393,12 +399,14 @@ reparent(struct proc *p)
 void
 exit(int status)
 {
+
   struct proc *p = myproc();
+  acquire(&wait_lock);
   //go through memory regions
   for(int i = 0;i < MAX_MMR;i++){	
   	if(p->mmr[i].valid && ((p->mmr[i].flags & MAP_SHARED) == MAP_SHARED)){
 		 p->mmr[i].valid = 0;
-      //count how manyh processes where sharing the region
+      //count how many processes where sharing the region
 		  int count = 0;
       for(int j = 0;j < MAX_PROC;j++){
           if(p->mmr[i].sharedproc[j] != -1){
@@ -414,6 +422,7 @@ exit(int status)
                 for(int q = 0;q < MAX_PROC;q++){
                     if(p->pid == mp->mmr[i].sharedproc[q]){
                         mp->mmr[i].sharedproc[q] = -1;
+                        break;
                     }
                 }
               }
@@ -436,8 +445,25 @@ exit(int status)
 			//go to the next page
 			start += PGSIZE;
 		}
-	}
+	}else if(p->mmr[i].valid && ((MAP_PRIVATE & p->mmr[i].flags) == MAP_PRIVATE)){
+      p->mmr[i].valid = 0;
+      //get the start address of the region
+      uint64 start = p->mmr[i].start_addr;
+      //go through the region page by page
+      while(start < (p->mmr[i].start_addr + p->mmr[i].length)){
+        //get the physical address, if it is not mapped then walkaddr returns 0
+        uint64 mapped_addr = walkaddr(p->pagetable,start);
+        //only remove if mapped
+        if(mapped_addr > 0){
+        //uvmunmap only unmaps mapped regions
+        uvmunmap(p->pagetable,start,1,1);
+        }
+      //go to the next page
+      start += PGSIZE;
+    }
+    }
   }
+  release(&wait_lock);
   if(p == initproc)
     panic("init exiting");
 

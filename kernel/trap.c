@@ -7,6 +7,7 @@
 #include "defs.h"
 
 struct spinlock tickslock;
+struct spinlock memlock;
 uint ticks;
 
 extern char trampoline[], uservec[], userret[];
@@ -18,7 +19,7 @@ extern int devintr();
 
 void
 trapinit(void)
-{
+{ initlock(&memlock, "mem");
   initlock(&tickslock, "time");
 }
 
@@ -71,6 +72,7 @@ usertrap(void)
 	int outofbounds = 1;
 	//align adress to be a multiple of PGSIZE
 	uint64 aligned_add = PGROUNDDOWN(f_add);
+  acquire(&memlock);
 	for(int i = 0;i < MAX_MMR;i++){
 		if(p->mmr[i].valid){
 			//last address of the memory region
@@ -84,7 +86,7 @@ usertrap(void)
 					printf("Error: allocation went wrong\n");
 					exit(-1);
 				}	
-				memset((void *)pg,0,PGSIZE);
+        memset((void *)pg,0,PGSIZE);
 				for(int j = 0;j < MAX_PROC;j++){
 					if(p->mmr[i].sharedproc[j] > -1){
 						//go through all procs and update the page table
@@ -95,12 +97,13 @@ usertrap(void)
 							}
 						}
 					}
-	 			 }	
+	 			 }
 				outofbounds = 0;
 				break;
 			}
 		}
 	}
+  release(&memlock);
 	if(outofbounds){
 		printf("segmentation fault\n");
 		exit(-1);

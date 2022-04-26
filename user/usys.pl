@@ -39,3 +39,8 @@ entry("uptime");
 entry("strace");
 entry("mmap");
 entry("munmap");
+entry("sem_init");
+entry("sem_post");
+entry("sem_wait");
+entry("sem_destroy");
+

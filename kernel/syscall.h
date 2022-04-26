@@ -23,3 +23,9 @@
 #define SYS_strace 22
 #define SYS_mmap   23
 #define SYS_munmap 24
+#define SYS_sem_init 25
+#define SYS_sem_post 26
+#define SYS_sem_wait 27
+#define SYS_sem_destroy 28
+
+

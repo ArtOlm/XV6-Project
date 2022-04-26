@@ -229,3 +229,96 @@ sys_munmap(void){
 	}
 	return 0;
 }
+uint64
+sys_sem_init(void){
+	  //get the arguments
+		uint64 sem_addr;
+		int count;
+		argaddr(0,&sem_addr);
+		argint(1,&count);
+		//boolean vairable to check if the allocation was a success
+		//return 0 id successful
+    int sem_alloc = -1;
+		sem_t * ssem = (sem_t *)sem_addr;
+		acquire(&tblock);
+		for(int i = 0;i < NSEM;i++){
+				if(!sem[i].valid){
+					sem[i].valid = 1;
+					//give the semaphore the index of the semaphore struct if there is one
+					*ssem = i;
+					sem[i].count = count;
+					initlock(&sem[i].lock,"sem");
+					sem_alloc = 0;
+					break;
+				}
+		}
+		release(&tblock);
+		return sem_alloc;
+}
+uint64
+sys_sem_post(void){
+		//get the address of the semaphore
+		uint64 sem_addr;
+		argaddr(0,&sem_addr);
+		sem_t * ssem = (sem_t *)sem_addr;
+		//check the semaphore has valid contents
+		if((*ssem < 0) || (*ssem >= NSEM)){
+		return -1;
+		}
+		//check it is valid in the table
+		if(sem[*ssem].valid){
+				acquire(&sem[*ssem].lock);
+				//increment count of the semaphore
+				sem[*ssem].count++;
+				//wake up the waiting process
+				wakeup(abc[*ssem]);
+				release(&sem[*ssem].lock);
+		}
+
+		return 0;
+}
+
+uint64
+sys_sem_wait(void){
+
+		uint64 sem_addr;
+		argaddr(0,&sem_addr);
+		sem_t * ssem = (sem_t *)sem_addr;
+		if((*ssem < 0) || (*ssem >= NSEM)){
+		return -1;
+		}
+		if(sem[*ssem].valid){
+				acquire(&sem[*ssem].lock);
+				//put the process to sleep while count of semaphore is 0
+				//give up the lock so that if sem_post is called there won't be a deadlock
+				while(sem[*ssem].count == 0){
+					
+					sleep(abc[*ssem],&sem[*ssem].lock);
+				}
+				sem[*ssem].count--;
+				release(&sem[*ssem].lock);
+		}
+		return 0;
+}
+
+uint64
+sys_sem_destroy(void){
+	uint64 sem_addr;
+	argaddr(0,&sem_addr);
+	sem_t * ssem = (sem_t *)sem_addr;
+	//check semaphore is within range
+	if((*ssem < 0) || (*ssem >= NSEM)){
+		return -1;
+	}
+
+	acquire(&tblock);
+	if(sem[*ssem].valid){
+		//make the semapthore struct not valid anymore and sem_t value passed now has a negative value
+		sem[*ssem].valid = 0;
+		*ssem = -1;
+	}
+	release(&tblock);
+
+	return 0;
+
+}

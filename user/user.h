@@ -26,7 +26,10 @@ int uptime(void);
 int strace(int);
 void *mmap(void *addr, int length, int prot, int flags, int f, int offset);
 int munmap(void *addr,int length);
-
+int sem_init(void *sem, int count);
+int sem_post(void *sem);
+int sem_wait(void *sem);
+int sem_destroy(void *sem);
 
 // ulib.c
 int stat(const char*, struct stat*);
