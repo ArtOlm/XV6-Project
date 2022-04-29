@@ -19,5 +19,3 @@ struct semaphore{
 extern struct semaphore sem[NSEM];
 extern struct spinlock tblock;
 
-extern char * abc[NSEM];
-

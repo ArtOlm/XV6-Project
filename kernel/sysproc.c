@@ -256,7 +256,7 @@ sys_sem_post(void){
 				//increment count of the semaphore
 				sem[*ssem].count++;
 				//wake up the waiting process
-				wakeup(abc[*ssem]);
+				wakeup((void *)&sem[*ssem]);
 				release(&sem[*ssem].lock);
 		}
 
@@ -278,7 +278,7 @@ sys_sem_wait(void){
 				//give up the lock so that if sem_post is called there won't be a deadlock
 				while(sem[*ssem].count == 0){
 					
-					sleep(abc[*ssem],&sem[*ssem].lock);
+					sleep((void *)&sem[*ssem],&sem[*ssem].lock);
 				}
 				sem[*ssem].count--;
 				release(&sem[*ssem].lock);

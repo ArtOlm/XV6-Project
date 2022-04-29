@@ -16,7 +16,6 @@ struct semaphore sem[20];
 struct proc *initproc;
 
 struct spinlock tblock;
-char* abc[] = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t"};
 int nextpid = 1;
 struct spinlock pid_lock;
 
