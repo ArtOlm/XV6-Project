@@ -117,6 +117,10 @@ int main(int argc, char *argv[])
   //baisically does the join for a thread
   while (wait(&status) > 0){}
   printf("total consumed = %d\n", buffer->total);
+  sem_destroy(&buffer->occupied);
+  sem_destroy(&buffer->free);
+  sem_destroy(&buffer->lock);
+  munmap(buffer, sizeof(buffer_t));
  
   exit(0);
 }
