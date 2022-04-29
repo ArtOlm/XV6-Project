@@ -429,6 +429,11 @@ exit(int status)
             }
 			}
 		}
+    if(count == 1){
+        for(int i = 0;i < NSEM;i++){
+          sem[i].valid = 0;
+        }
+    }
 		//get the start address of the region
 		uint64 start = p->mmr[i].start_addr;
 		//go through the region page by page

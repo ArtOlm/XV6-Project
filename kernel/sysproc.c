@@ -107,13 +107,6 @@ uint64
 sys_mmap(void){
 		
 	struct proc *p = myproc(); 
-	if(p->mmrsize == 0){
-		p->cur_max = MAXVA - (2 * 4096);
-	}	
-	if(p->mmrsize == (MAX_MMR)){
-		printf("Error: not more mmr allowed");
-		return 0;
-	}
 	int add;
 	int size;
 	int prot;
@@ -136,7 +129,6 @@ sys_mmap(void){
 	size = PGROUNDUP(size);
 	//actual address
 	uint64 act_add = p->cur_max - size;
-	int success = 0;
 	//search fir valid mmr and set the members for the structure
 	for(int i = 0;i < MAX_MMR;i++){
 		if(!p->mmr[i].valid){
@@ -152,16 +144,9 @@ sys_mmap(void){
 				p->mmr[i].sharedproc[j] = -1;
 			}
 			p->mmr[i].sharedproc[0] = p->pid;
-			success = 1;
 			break;
 		}
-	}//check if there was a mapped region
-	if(!success){
-		printf("Error: No more memory available");
-		exit(-1);
 	}
-	//update the size of the mmrregion
-	p->mmrsize++;
 	//update cur size so that the next page starts at the next available address
 	p->cur_max = p->cur_max - size;
 	return act_add;

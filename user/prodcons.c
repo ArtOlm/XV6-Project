@@ -8,7 +8,7 @@ int consumer();
 int *buffer;
 
 void producer() {
-    for (int i=0; i<BUF_SIZE; i++){    
+    for (int i=0; i<BUF_SIZE; i++){  
         buffer[i] = i;
     }
     return;

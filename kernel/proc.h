@@ -120,6 +120,5 @@ struct proc {
   char name[16];               // Process name (debugging)
   struct mmregion mmr[MAX_MMR];
   uint64 cur_max;
-  int mmrsize;
 };
 extern struct proc proc[MAX_PROC];
